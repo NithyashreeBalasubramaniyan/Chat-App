@@ -1,0 +1,22 @@
+.main-box{
+    width: 90%;
+    height: 90%;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+
+    border-radius: 5px;
+    display: grid;
+    color:white;
+    padding: 10px;
+
+}
+.three-col{
+
+     grid-template-columns: 1.5fr 2fr 1fr;
+
+}
+.two-col{
+   
+     grid-template-columns: 1.5fr 2fr ;
+}

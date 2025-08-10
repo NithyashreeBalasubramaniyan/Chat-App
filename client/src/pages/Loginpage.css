@@ -1,0 +1,103 @@
+.login-page{
+    
+    width: 70vw;
+    height: 80vh;
+    backdrop-filter: blur(30px);
+  justify-content: space-around;
+    display: flex;
+    align-items: center;
+    gap:50px;
+    background-color: rgba(25, 24, 33, 0.3);
+    padding: 20px 70px;
+    
+    box-shadow: 2px 2px 2px #050111;
+  
+
+}
+.login-img{
+    width:200px;
+    height: 50%;
+    object-fit: contain;
+   
+    height: 80%;
+    width: 20%;
+}
+.login-form{
+    /* background-color:rgba(66, 42, 255, 0.3); */
+    backdrop-filter: blur(15px);
+    display: flex;
+    flex-direction: column;
+    gap:15px;
+    border:1px solid rgba(108, 92, 231, 0.3);
+    color:white;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px #282142;
+    padding: 20px;
+   width: 330px;
+
+}
+.login-heading{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.login-form h1{
+    font-weight: bold;
+}
+.arrow-icon{
+    width: 20px;
+    height: 20px;
+}
+.login-input{
+    display: flex;
+    flex-direction: column;
+    gap:15px;
+}
+.login-input input,.name-input{
+    border-radius: 10px;
+    padding: 10px;
+
+}
+.login-input input:focus{
+    outline:none;
+}
+.name-input:focus{
+    outline: none;
+}
+.login-btn{
+    background: linear-gradient(rgb(52, 3, 52),rgb(203, 66, 203));
+    color:white;
+    padding: 10px;
+    border-radius: 20px;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    margin-top: 10px;
+
+}
+.login-check-block{
+    display: flex;
+    margin-top: -10px;
+    align-items: center;
+    gap:10px;
+   
+}
+.check-box{
+    width: 20px;
+    height: 20px;
+  
+}
+.login-btn-p a{
+   color:aquamarine;
+   padding: 5px;
+   font-weight: bold;
+   cursor:pointer;
+}
+.login-check-block p{
+   
+}
+.text-area-bio{
+    border-radius: 5px;
+    padding: 10px;
+    
+}
