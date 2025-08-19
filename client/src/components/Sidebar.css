@@ -1,11 +1,15 @@
 .side-bar{
     
-    padding: 20px;/* Purple tone to match chat logo */
+ padding: 20px;/* Purple tone to match chat logo */
  
   box-shadow: 3px 0 10px rgba(108, 92, 231, 0.3); /* Soft right glow */
-  overflow-y: scroll;
+  height: 85vh;
+ 
+  padding-bottom: 15px;
+
 
 }
+
 
 .menu-icon{
     width: 22px;
@@ -106,6 +110,10 @@
     
 
 }
+.user-contacts{
+    height: 80%;
+    overflow: scroll;
+}
 .user-info{
     display: flex;
     flex-direction: column;
@@ -153,3 +161,8 @@
     font-weight: bold;
 }
 
+@media (max-width: 768px) {
+    .side-bar{
+        height: 100vh;
+    }
+}

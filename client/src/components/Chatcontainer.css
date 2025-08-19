@@ -180,3 +180,15 @@ margin-left: 30%;
     width: 28px;
     height: 28px;
 }
+@media (min-width:770px){
+    .help-icon{
+        display: none;
+    }
+}
+
+@media (max-width:770px){
+    .chat-container{
+        height: 100vh;
+    }
+
+}

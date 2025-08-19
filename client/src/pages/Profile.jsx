@@ -71,7 +71,7 @@ const Profile = () => {
             className='profile-bio'
             onChange={(e) => setBio(e.target.value)}
             value={bio}
-            rows={4}
+            rows={6}
             placeholder='Hey there I am using Quickchat'
           />
           <button type='submit' className='profile-update-btn'>Save</button>

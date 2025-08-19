@@ -77,3 +77,15 @@
     border-radius: 50%;
     object-fit: contain;
 }
+
+@media (max-width:770px){
+    .profile-logo-container img{
+        display: none;
+    }
+    .profile-content{
+    min-width: 100%;
+    }
+    .profile-bio{
+        padding: 20px;
+    }
+}

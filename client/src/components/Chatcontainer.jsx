@@ -9,7 +9,7 @@ import { useEffect } from 'react'
 import { ChatContext } from '../../context/ChatContext';
 import { Authcontext } from '../../context/AuthContext';
 export const Chatcontainer = () => {
-  const {selecteduser,setSelecteduser,setUnseenmessages,messages,getMessage,sendMsg}=useContext(ChatContext)
+  const {selecteduser,setSelecteduser,setUnseenmessages,messages,getMessage,showRightSidebar, setShowRightSidebar,sendMsg}=useContext(ChatContext)
 
   const {onlineUser,authUser}=useContext(Authcontext)
  const [input,setInput]=useState('')
@@ -74,7 +74,7 @@ export const Chatcontainer = () => {
             </div>
             <div className="chat-icon-block">
               <img className='arrow-icon' onClick={()=>setSelecteduser(false)} src={assets.arrow_icon} />
-              <img className='help-icon' src={assets.help_icon} />
+              <img className='help-icon' src={assets.help_icon} onClick={() => setShowRightSidebar(!showRightSidebar)} />
             </div>
             
            </div>
