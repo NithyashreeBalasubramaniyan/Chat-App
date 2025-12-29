@@ -1,29 +1,54 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { Authcontext } from "./AuthContext";
+import { createContext, useContext, useEffect, useState } from "react";
+import { io } from "socket.io-client";
 import toast from "react-hot-toast";
+import { Authcontext } from "./AuthContext";
 
 export const ChatContext = createContext();
 
 export const ChatProvider = ({ children }) => {
-  const [messages, setMessages] = useState([]);
+  const { authUser, axios } = useContext(Authcontext);
+
+  const [socket, setSocket] = useState(null);
+  const [onlineUser, setOnlineUser] = useState([]);
+
   const [users, setUsers] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [selecteduser, setSelecteduser] = useState(null);
   const [unseenmessages, setUnseenmessages] = useState({});
   const [showRightSidebar, setShowRightSidebar] = useState(false);
 
-  const selectedUserRef = useRef(null); // ✅ NEW
-  const { socket, axios } = useContext(Authcontext);
-
+  // 🔹 CREATE SOCKET AFTER LOGIN
   useEffect(() => {
-    selectedUserRef.current = selecteduser; // ✅ always latest
-  }, [selecteduser]);
+    if (!authUser?._id) return;
 
+    const newSocket = io(import.meta.env.VITE_BACKEND_URL, {
+      query: { userId: authUser._id },
+    });
+
+    setSocket(newSocket);
+
+    newSocket.on("getOnlineUsers", (users) => {
+      setOnlineUser(users);
+    });
+
+    newSocket.on("newmessage", async (newmessage) => {
+      if (selecteduser?._id === newmessage.senderId) {
+        setMessages((prev) => [...prev, newmessage]);
+        await axios.post(`/api/messages/mark/${newmessage._id}`);
+      } else {
+        setUnseenmessages((prev) => ({
+          ...prev,
+          [newmessage.senderId]: (prev[newmessage.senderId] || 0) + 1,
+        }));
+      }
+    });
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [authUser]);
+
+  // 🔹 Get all users
   const getUser = async () => {
     try {
       const { data } = await axios.get("/api/messages/users");
@@ -36,6 +61,7 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // 🔹 Get messages
   const getMessage = async (userId) => {
     try {
       const { data } = await axios.get(`/api/messages/${userId}`);
@@ -47,6 +73,7 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // 🔹 Send message
   const sendMsg = async (msgData) => {
     try {
       const { data } = await axios.post(
@@ -61,50 +88,27 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
- useEffect(() => {
-  if (!socket) return;
-
-  const handleNewMessage = async (newmessage) => {
-    const currentSelectedUserId = selecteduser?._id;
-
-    if (currentSelectedUserId === newmessage.senderId) {
-      // We're chatting with sender now, show live
-      setMessages((prev) => [...prev, { ...newmessage, seen: true }]);
-      await axios.post(`/api/messages/mark/${newmessage._id}`);
-    } else {
-      // Not chatting, update unseen counter
-      setUnseenmessages((prev) => ({
-        ...prev,
-        [newmessage.senderId]: (prev[newmessage.senderId] || 0) + 1,
-      }));
-    }
-  };
-
-  socket.on('newmessage', handleNewMessage);
-
-  return () => {
-    socket.off('newmessage', handleNewMessage);
-  };
-}, [socket, selecteduser]);
-
- 
-
-
   const value = {
-    selecteduser,
-    setSelecteduser,
-    messages,
-    setMessages,
+    socket,
+    onlineUser,
     users,
-    setUsers,
+    messages,
+    selecteduser,
     unseenmessages,
+    showRightSidebar,
+    setSelecteduser,
+    setMessages,
+    setUsers,
     setUnseenmessages,
+    setShowRightSidebar,
     getUser,
     getMessage,
     sendMsg,
-    showRightSidebar,
-    setShowRightSidebar,
   };
 
-  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
+  return (
+    <ChatContext.Provider value={value}>
+      {children}
+    </ChatContext.Provider>
+  );
 };
