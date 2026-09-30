@@ -1,3 +1,4 @@
+
 import { createContext, useEffect, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -7,58 +8,117 @@ const backend_url = import.meta.env.VITE_BACKEND_URL;
 export const Authcontext = createContext();
 
 export const Authprovider = ({ children }) => {
+  const [token, setToken] = useState(
+    localStorage.getItem("token")
+  );
+  const [authUser, setAuthUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // ---------- Axios Configuration ----------
   axios.defaults.baseURL = backend_url;
 
-  const [token, setToken] = useState(localStorage.getItem("token"));
-  const [authUser, setAuthUser] = useState(null);
+  // ---------- Check Authentication ----------
+  const checkAuth = async (savedToken = token) => {
+    if (!savedToken) {
+      setAuthUser(null);
+      setAuthLoading(false);
+      return;
+    }
 
-  // 🔹 Check auth on refresh
-  const checkAuth = async () => {
     try {
+      axios.defaults.headers.common["token"] = savedToken;
+
       const { data } = await axios.get("/api/auth/check");
+
       if (data.success) {
         setAuthUser(data.user);
+      } else {
+        setAuthUser(null);
       }
     } catch (error) {
-      console.log(error.message);
+      console.error(
+        "Auth check error:",
+        error.response?.data || error.message
+      );
+
+      if (
+        error.response?.status === 401 ||
+        error.response?.status === 403
+      ) {
+        localStorage.removeItem("token");
+        delete axios.defaults.headers.common["token"];
+        setToken(null);
+        setAuthUser(null);
+      }
+    } finally {
+      setAuthLoading(false);
     }
   };
 
-  // 🔹 Login
+  // ---------- Login / Register ----------
   const login = async (state, credential) => {
     try {
-      const { data } = await axios.post(`/api/auth/${state}`, credential);
+      const { data } = await axios.post(
+        `/api/auth/${state}`,
+        credential
+      );
 
       if (data.success) {
         setAuthUser(data.user);
-        axios.defaults.headers.common["token"] = data.token;
-        localStorage.setItem("token", data.token);
-        setToken(data.token);
-        toast.success(data.message);
+
+        if (data.token) {
+          axios.defaults.headers.common["token"] =
+            data.token;
+
+          localStorage.setItem("token", data.token);
+          setToken(data.token);
+        }
+
+        toast.success(data.message || "Success");
       } else {
-        toast.error(data.message);
+        toast.error(data.message || "Authentication failed");
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error(
+        "Login/Register error:",
+        error.response?.data || error.message
+      );
+
+      toast.error(
+        error.response?.data?.message ||
+        error.message ||
+        "Something went wrong"
+      );
     }
   };
 
-  // 🔹 Logout
+  // ---------- Logout ----------
   const logout = () => {
     localStorage.removeItem("token");
+
+    delete axios.defaults.headers.common["token"];
+
     setToken(null);
     setAuthUser(null);
-    axios.defaults.headers.common["token"] = null;
+
     toast.success("Logged out successfully");
   };
 
-  // 🔹 On app load
+  // ---------- Restore Session on Refresh ----------
   useEffect(() => {
+    if (!backend_url) {
+      console.error("VITE_BACKEND_URL is missing!");
+      setAuthLoading(false);
+      return;
+    }
+
     const savedToken = localStorage.getItem("token");
+
     if (savedToken) {
       setToken(savedToken);
-      axios.defaults.headers.common["token"] = savedToken;
-      checkAuth();
+      checkAuth(savedToken);
+    } else {
+      setAuthLoading(false);
     }
   }, []);
 
@@ -66,6 +126,7 @@ export const Authprovider = ({ children }) => {
     axios,
     authUser,
     token,
+    authLoading,
     login,
     logout,
     checkAuth,
