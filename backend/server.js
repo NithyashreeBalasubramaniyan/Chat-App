@@ -20,8 +20,19 @@ const FRONTEND_URL =
 const corsOptions = {
   origin: FRONTEND_URL,
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+  ],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "token",
+  ],
 };
 
 // ---------- Socket.IO ----------
@@ -50,7 +61,10 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("User disconnected:", userId);
 
-    if (userId && userSocketMap[userId] === socket.id) {
+    if (
+      userId &&
+      userSocketMap[userId] === socket.id
+    ) {
       delete userSocketMap[userId];
     }
 
@@ -62,14 +76,22 @@ io.on("connection", (socket) => {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "4mb" }));
 
-// ---------- Routes ----------
-app.use("/api/auth", userroute);
-app.use("/api/messages", msgroute);
+// ---------- Root Route ----------
+app.get("/", (req, res) => {
+  res.status(200).send("Chat App Backend is Running!");
+});
 
 // ---------- Status Route ----------
 app.get("/api/status", (req, res) => {
-  res.status(200).send("Server running successfully 🚀");
+  res.status(200).json({
+    success: true,
+    message: "Server running successfully",
+  });
 });
+
+// ---------- API Routes ----------
+app.use("/api/auth", userroute);
+app.use("/api/messages", msgroute);
 
 // ---------- Start Server ----------
 const startServer = async () => {
