@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useState } from "react";
+
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { io } from "socket.io-client";
 import toast from "react-hot-toast";
 import { Authcontext } from "./AuthContext";
@@ -15,79 +22,188 @@ export const ChatProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [selecteduser, setSelecteduser] = useState(null);
   const [unseenmessages, setUnseenmessages] = useState({});
-  const [showRightSidebar, setShowRightSidebar] = useState(false);
+  const [showRightSidebar, setShowRightSidebar] =
+    useState(false);
 
-  // 🔹 CREATE SOCKET AFTER LOGIN
+  // Keep the latest selected user available to socket events
+  const selectedUserRef = useRef(null);
+
   useEffect(() => {
-    if (!authUser?._id) return;
+    selectedUserRef.current = selecteduser;
+  }, [selecteduser]);
 
-    const newSocket = io(import.meta.env.VITE_BACKEND_URL, {
-      query: { userId: authUser._id },
-    });
+  // ---------- CREATE SOCKET AFTER LOGIN ----------
+  useEffect(() => {
+    if (!authUser?._id) {
+      setSocket(null);
+      setOnlineUser([]);
+      return;
+    }
+
+    const newSocket = io(
+      import.meta.env.VITE_BACKEND_URL,
+      {
+        query: {
+          userId: authUser._id,
+        },
+      }
+    );
 
     setSocket(newSocket);
 
+    // ---------- Online Users ----------
     newSocket.on("getOnlineUsers", (users) => {
-      setOnlineUser(users);
+      setOnlineUser(
+        Array.isArray(users) ? users : []
+      );
     });
 
-    newSocket.on("newmessage", async (newmessage) => {
-      if (selecteduser?._id === newmessage.senderId) {
-        setMessages((prev) => [...prev, newmessage]);
-        await axios.post(`/api/messages/mark/${newmessage._id}`);
-      } else {
-        setUnseenmessages((prev) => ({
-          ...prev,
-          [newmessage.senderId]: (prev[newmessage.senderId] || 0) + 1,
-        }));
+    // ---------- Incoming Messages ----------
+    newSocket.on(
+      "newmessage",
+      async (newmessage) => {
+        if (!newmessage) return;
+
+        const currentSelectedUser =
+          selectedUserRef.current;
+
+        if (
+          currentSelectedUser?._id ===
+          newmessage.senderId
+        ) {
+          setMessages((prev) => [
+            ...prev,
+            newmessage,
+          ]);
+
+          try {
+            await axios.post(
+              `/api/messages/mark/${newmessage._id}`
+            );
+          } catch (error) {
+            console.error(
+              "Mark message seen error:",
+              error
+            );
+          }
+        } else {
+          setUnseenmessages((prev) => ({
+            ...prev,
+            [newmessage.senderId]:
+              (prev[newmessage.senderId] || 0) + 1,
+          }));
+        }
       }
-    });
+    );
 
+    // ---------- Cleanup ----------
     return () => {
       newSocket.disconnect();
+      setSocket((current) =>
+        current === newSocket ? null : current
+      );
     };
-  }, [authUser]);
+  }, [authUser?._id, axios]);
 
-  // 🔹 Get all users
+  // ---------- Get All Users ----------
   const getUser = async () => {
     try {
-      const { data } = await axios.get("/api/messages/users");
+      const { data } = await axios.get(
+        "/api/messages/users"
+      );
+
       if (data.success) {
-        setUsers(data.users);
-        setUnseenmessages(data.unseenmsg || {});
+        setUsers(
+          Array.isArray(data.users)
+            ? data.users
+            : []
+        );
+
+        setUnseenmessages(
+          data.unseenmsg &&
+          typeof data.unseenmsg === "object"
+            ? data.unseenmsg
+            : {}
+        );
+      } else {
+        setUsers([]);
+        setUnseenmessages({});
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error("Get users error:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+        "Failed to load users"
+      );
     }
   };
 
-  // 🔹 Get messages
+  // ---------- Get Messages ----------
   const getMessage = async (userId) => {
+    if (!userId) {
+      setMessages([]);
+      return;
+    }
+
     try {
-      const { data } = await axios.get(`/api/messages/${userId}`);
+      const { data } = await axios.get(
+        `/api/messages/${userId}`
+      );
+
       if (data.success) {
-        setMessages(data.messages);
+        setMessages(
+          Array.isArray(data.messages)
+            ? data.messages
+            : []
+        );
+      } else {
+        setMessages([]);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error("Get messages error:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+        "Failed to load messages"
+      );
     }
   };
 
-  // 🔹 Send message
+  // ---------- Send Message ----------
   const sendMsg = async (msgData) => {
+    if (!selecteduser?._id) {
+      toast.error("Please select a user");
+      return;
+    }
+
     try {
       const { data } = await axios.post(
         `/api/messages/send/${selecteduser._id}`,
         msgData
       );
-      if (data.success) {
-        setMessages((prev) => [...prev, data.newmessage]);
+
+      if (data.success && data.newmessage) {
+        setMessages((prev) => [
+          ...prev,
+          data.newmessage,
+        ]);
+      } else {
+        toast.error(
+          data.message || "Message could not be sent"
+        );
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error("Send message error:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+        "Failed to send message"
+      );
     }
   };
 
+  // ---------- Context Values ----------
   const value = {
     socket,
     onlineUser,
@@ -96,11 +212,13 @@ export const ChatProvider = ({ children }) => {
     selecteduser,
     unseenmessages,
     showRightSidebar,
+
     setSelecteduser,
     setMessages,
     setUsers,
     setUnseenmessages,
     setShowRightSidebar,
+
     getUser,
     getMessage,
     sendMsg,

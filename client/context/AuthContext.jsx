@@ -1,5 +1,9 @@
 
-import { createContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useEffect,
+  useState,
+} from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -9,7 +13,7 @@ export const Authcontext = createContext();
 
 export const Authprovider = ({ children }) => {
   const [token, setToken] = useState(
-    localStorage.getItem("token")
+    () => localStorage.getItem("token")
   );
   const [authUser, setAuthUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -28,9 +32,11 @@ export const Authprovider = ({ children }) => {
     try {
       axios.defaults.headers.common["token"] = savedToken;
 
-      const { data } = await axios.get("/api/auth/check");
+      const { data } = await axios.get(
+        "/api/auth/check"
+      );
 
-      if (data.success) {
+      if (data.success && data.user) {
         setAuthUser(data.user);
       } else {
         setAuthUser(null);
@@ -64,8 +70,6 @@ export const Authprovider = ({ children }) => {
       );
 
       if (data.success) {
-        setAuthUser(data.user);
-
         if (data.token) {
           axios.defaults.headers.common["token"] =
             data.token;
@@ -74,9 +78,12 @@ export const Authprovider = ({ children }) => {
           setToken(data.token);
         }
 
+        setAuthUser(data.user || null);
         toast.success(data.message || "Success");
       } else {
-        toast.error(data.message || "Authentication failed");
+        toast.error(
+          data.message || "Authentication failed"
+        );
       }
     } catch (error) {
       console.error(
@@ -104,10 +111,12 @@ export const Authprovider = ({ children }) => {
     toast.success("Logged out successfully");
   };
 
-  // ---------- Restore Session on Refresh ----------
+  // ---------- Restore Session ----------
   useEffect(() => {
     if (!backend_url) {
-      console.error("VITE_BACKEND_URL is missing!");
+      console.error(
+        "VITE_BACKEND_URL is missing!"
+      );
       setAuthLoading(false);
       return;
     }
@@ -118,6 +127,7 @@ export const Authprovider = ({ children }) => {
       setToken(savedToken);
       checkAuth(savedToken);
     } else {
+      setAuthUser(null);
       setAuthLoading(false);
     }
   }, []);
