@@ -25,14 +25,13 @@ export const ChatProvider = ({ children }) => {
   const [showRightSidebar, setShowRightSidebar] =
     useState(false);
 
-  // Keep the latest selected user available to socket events
   const selectedUserRef = useRef(null);
 
   useEffect(() => {
     selectedUserRef.current = selecteduser;
   }, [selecteduser]);
 
-  // ---------- CREATE SOCKET AFTER LOGIN ----------
+  // Create socket connection after login
   useEffect(() => {
     if (!authUser?._id) {
       setSocket(null);
@@ -51,61 +50,59 @@ export const ChatProvider = ({ children }) => {
 
     setSocket(newSocket);
 
-    // ---------- Online Users ----------
+    // Receive online users
     newSocket.on("getOnlineUsers", (users) => {
       setOnlineUser(
         Array.isArray(users) ? users : []
       );
     });
 
-    // ---------- Incoming Messages ----------
-    newSocket.on(
-      "newmessage",
-      async (newmessage) => {
-        if (!newmessage) return;
+    // Receive new messages
+    newSocket.on("newmessage", async (newmessage) => {
+      if (!newmessage) return;
 
-        const currentSelectedUser =
-          selectedUserRef.current;
+      const currentSelectedUser =
+        selectedUserRef.current;
 
-        if (
-          currentSelectedUser?._id ===
-          newmessage.senderId
-        ) {
-          setMessages((prev) => [
-            ...prev,
-            newmessage,
-          ]);
+      if (
+        currentSelectedUser?._id ===
+        newmessage.senderId
+      ) {
+        setMessages((prev) => [
+          ...prev,
+          newmessage,
+        ]);
 
-          try {
-            await axios.post(
-              `/api/messages/mark/${newmessage._id}`
-            );
-          } catch (error) {
-            console.error(
-              "Mark message seen error:",
-              error
-            );
-          }
-        } else {
-          setUnseenmessages((prev) => ({
-            ...prev,
-            [newmessage.senderId]:
-              (prev[newmessage.senderId] || 0) + 1,
-          }));
+        try {
+          await axios.post(
+            `/api/messages/mark/${newmessage._id}`
+          );
+        } catch (error) {
+          console.error(
+            "Mark message seen error:",
+            error
+          );
         }
+      } else {
+        setUnseenmessages((prev) => ({
+          ...prev,
+          [newmessage.senderId]:
+            (prev[newmessage.senderId] || 0) + 1,
+        }));
       }
-    );
+    });
 
-    // ---------- Cleanup ----------
+    // Cleanup socket connection
     return () => {
       newSocket.disconnect();
+
       setSocket((current) =>
         current === newSocket ? null : current
       );
     };
   }, [authUser?._id, axios]);
 
-  // ---------- Get All Users ----------
+  // Get all users
   const getUser = async () => {
     try {
       const { data } = await axios.get(
@@ -139,7 +136,7 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // ---------- Get Messages ----------
+  // Get messages for the selected user
   const getMessage = async (userId) => {
     if (!userId) {
       setMessages([]);
@@ -170,7 +167,7 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // ---------- Send Message ----------
+  // Send a message
   const sendMsg = async (msgData) => {
     if (!selecteduser?._id) {
       toast.error("Please select a user");
@@ -190,7 +187,8 @@ export const ChatProvider = ({ children }) => {
         ]);
       } else {
         toast.error(
-          data.message || "Message could not be sent"
+          data.message ||
+          "Message could not be sent"
         );
       }
     } catch (error) {
@@ -203,7 +201,7 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // ---------- Context Values ----------
+  // Values shared with components
   const value = {
     socket,
     onlineUser,
